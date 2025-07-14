@@ -1,0 +1,8 @@
+ipykernel
+opencv-python
+paddleocr
+matplotlib
+
+
+# from cmd
+# python -m pip install paddlepaddle-gpu==3.1.0 -i https://www.paddlepaddle.org.cn/packages/stable/cu126/

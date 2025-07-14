@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OCR Bounding Box Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            font-weight: 700;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .upload-section {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .file-input-container {
+            position: relative;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .file-input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-input-label {
+            display: block;
+            padding: 15px 25px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: 2px dashed transparent;
+        }
+
+        .file-input-label:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #333;
+            border: 2px solid #dee2e6;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .search-container {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .search-input {
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .viewer-container {
+            position: relative;
+            display: inline-block;
+            margin: 20px auto;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .image-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        #imageDisplay {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .bbox {
+            position: absolute;
+            border: 2px solid #4CAF50;
+            background: rgba(76, 175, 80, 0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 3px;
+        }
+
+        .bbox:hover {
+            border-color: #2196F3;
+            background: rgba(33, 150, 243, 0.2);
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+        }
+
+        .bbox.highlighted {
+            border-color: #FF5722;
+            background: rgba(255, 87, 34, 0.3);
+            border-width: 3px;
+            z-index: 10;
+        }
+
+        .bbox-label {
+            position: absolute;
+            top: -25px;
+            left: 0;
+            background: rgba(76, 175, 80, 0.9);
+            color: white;
+            padding: 4px 8px;
+            font-size: 12px;
+            border-radius: 4px;
+            white-space: nowrap;
+            font-weight: 600;
+        }
+
+        .bbox.highlighted .bbox-label {
+            background: rgba(255, 87, 34, 0.9);
+        }
+
+        .word-list {
+            margin-top: 30px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .word-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid #e0e0e0;
+        }
+
+        .word-item:hover {
+            background: #667eea;
+            color: white;
+            transform: translateX(5px);
+        }
+
+        .word-item.highlighted {
+            background: #FF5722;
+            color: white;
+            border-color: #FF5722;
+        }
+
+        .word-info {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .word-index {
+            background: #667eea;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            min-width: 30px;
+            text-align: center;
+        }
+
+        .word-item.highlighted .word-index {
+            background: #FF5722;
+        }
+
+        .confidence {
+            font-size: 12px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .word-item.highlighted .confidence {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+            padding: 20px;
+            background: linear-gradient(45deg, #f8f9fa, #e9ecef);
+            border-radius: 12px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            flex: 1;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .error-message {
+            color: #dc3545;
+            background: #f8d7da;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 OCR Bounding Box Viewer</h1>
+        
+        <div class="upload-section">
+            <div class="file-input-container">
+                <input type="file" id="imageInput" class="file-input" accept="image/*">
+                <label for="imageInput" class="file-input-label">
+                    📸 Upload Image
+                </label>
+            </div>
+            
+            <div class="file-input-container">
+                <input type="file" id="jsonInput" class="file-input" accept=".json">
+                <label for="jsonInput" class="file-input-label">
+                    📄 Upload JSON
+                </label>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="showAllBtn" class="btn btn-primary">Show All Boxes</button>
+            <button id="hideAllBtn" class="btn btn-secondary">Hide All Boxes</button>
+            <button id="clearHighlightBtn" class="btn btn-secondary">Clear Highlights</button>
+            
+            <div class="search-container">
+                <input type="text" id="searchInput" class="search-input" placeholder="Search words...">
+                <button id="searchBtn" class="btn btn-primary">🔍 Search</button>
+            </div>
+        </div>
+
+        <div class="viewer-container">
+            <div class="image-container">
+                <img id="imageDisplay" alt="Upload an image to view">
+            </div>
+        </div>
+
+        <div id="errorMessage" class="error-message" style="display: none;"></div>
+
+        <div class="stats">
+            <div class="stat-item">
+                <div id="totalWords" class="stat-value">0</div>
+                <div class="stat-label">Total Words</div>
+            </div>
+            <div class="stat-item">
+                <div id="avgConfidence" class="stat-value">0%</div>
+                <div class="stat-label">Avg Confidence</div>
+            </div>
+            <div class="stat-item">
+                <div id="highlightedCount" class="stat-value">0</div>
+                <div class="stat-label">Highlighted</div>
+            </div>
+        </div>
+
+        <div id="wordList" class="word-list"></div>
+    </div>
+
+    <script>
+        let wordData = [];
+        let currentImage = null;
+        let showBboxes = true;
+
+        const imageInput = document.getElementById('imageInput');
+        const jsonInput = document.getElementById('jsonInput');
+        const imageDisplay = document.getElementById('imageDisplay');
+        const wordList = document.getElementById('wordList');
+        const errorMessage = document.getElementById('errorMessage');
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const showAllBtn = document.getElementById('showAllBtn');
+        const hideAllBtn = document.getElementById('hideAllBtn');
+        const clearHighlightBtn = document.getElementById('clearHighlightBtn');
+
+        imageInput.addEventListener('change', loadImage);
+        jsonInput.addEventListener('change', loadJSON);
+        searchBtn.addEventListener('click', searchWords);
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') searchWords();
+        });
+        showAllBtn.addEventListener('click', showAllBoxes);
+        hideAllBtn.addEventListener('click', hideAllBoxes);
+        clearHighlightBtn.addEventListener('click', clearHighlights);
+
+        function loadImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                imageDisplay.src = e.target.result;
+                currentImage = e.target.result;
+                imageDisplay.onload = function() {
+                    if (wordData.length > 0) {
+                        renderBoundingBoxes();
+                    }
+                };
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function loadJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    wordData = JSON.parse(e.target.result);
+                    console.log('Loaded word data:', wordData);
+                    renderWordList();
+                    updateStats();
+                    if (currentImage) {
+                        renderBoundingBoxes();
+                    }
+                    hideError();
+                } catch (error) {
+                    showError('Invalid JSON file format');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function renderBoundingBoxes() {
+            // Clear existing boxes
+            const existingBoxes = document.querySelectorAll('.bbox');
+            existingBoxes.forEach(box => box.remove());
+
+            if (!showBboxes) return;
+
+            const container = document.querySelector('.image-container');
+            const img = imageDisplay;
+            const imgRect = img.getBoundingClientRect();
+            const containerRect = container.getBoundingClientRect();
+
+            // Calculate scale factors
+            const scaleX = img.clientWidth / img.naturalWidth;
+            const scaleY = img.clientHeight / img.naturalHeight;
+
+            wordData.forEach((item, index) => {
+                const bbox = item.bbox;
+                const [x1, y1, x2, y2] = bbox;
+
+                // Scale coordinates to displayed image size
+                const scaledX1 = x1 * scaleX;
+                const scaledY1 = y1 * scaleY;
+                const scaledX2 = x2 * scaleX;
+                const scaledY2 = y2 * scaleY;
+
+                // Create bounding box element
+                const bboxElement = document.createElement('div');
+                bboxElement.className = 'bbox';
+                bboxElement.dataset.index = index;
+                bboxElement.style.left = scaledX1 + 'px';
+                bboxElement.style.top = scaledY1 + 'px';
+                bboxElement.style.width = (scaledX2 - scaledX1) + 'px';
+                bboxElement.style.height = (scaledY2 - scaledY1) + 'px';
+
+                // Create label
+                const label = document.createElement('div');
+                label.className = 'bbox-label';
+                label.textContent = `${item.index}: ${item.word}`;
+                bboxElement.appendChild(label);
+
+                // Add click handler
+                bboxElement.addEventListener('click', () => {
+                    highlightWord(index);
+                });
+
+                container.appendChild(bboxElement);
+            });
+        }
+
+        function renderWordList() {
+            wordList.innerHTML = '';
+            
+            wordData.forEach((item, index) => {
+                const wordItem = document.createElement('div');
+                wordItem.className = 'word-item';
+                wordItem.dataset.index = index;
+                
+                wordItem.innerHTML = `
+                    <div class="word-info">
+                        <div class="word-index">${item.index}</div>
+                        <div class="word-text">${item.word}</div>
+                    </div>
+                    <div class="confidence">${(item.confidence * 100).toFixed(1)}%</div>
+                `;
+                
+                wordItem.addEventListener('click', () => {
+                    highlightWord(index);
+                });
+                
+                wordList.appendChild(wordItem);
+            });
+        }
+
+        function highlightWord(index) {
+            // Clear previous highlights
+            clearHighlights();
+
+            // Highlight bounding box
+            const bbox = document.querySelector(`[data-index="${index}"]`);
+            if (bbox) {
+                bbox.classList.add('highlighted');
+            }
+
+            // Highlight word in list
+            const wordItem = document.querySelector(`.word-item[data-index="${index}"]`);
+            if (wordItem) {
+                wordItem.classList.add('highlighted');
+                wordItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            updateStats();
+        }
+
+        function clearHighlights() {
+            document.querySelectorAll('.highlighted').forEach(el => {
+                el.classList.remove('highlighted');
+            });
+            updateStats();
+        }
+
+        function showAllBoxes() {
+            showBboxes = true;
+            renderBoundingBoxes();
+        }
+
+        function hideAllBoxes() {
+            showBboxes = false;
+            renderBoundingBoxes();
+        }
+
+        function searchWords() {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            if (!searchTerm) return;
+
+            clearHighlights();
+
+            wordData.forEach((item, index) => {
+                if (item.word.toLowerCase().includes(searchTerm)) {
+                    const bbox = document.querySelector(`[data-index="${index}"]`);
+                    const wordItem = document.querySelector(`.word-item[data-index="${index}"]`);
+                    
+                    if (bbox) bbox.classList.add('highlighted');
+                    if (wordItem) wordItem.classList.add('highlighted');
+                }
+            });
+
+            updateStats();
+        }
+
+        function updateStats() {
+            const totalWords = wordData.length;
+            const avgConfidence = wordData.length > 0 ? 
+                (wordData.reduce((sum, item) => sum + item.confidence, 0) / wordData.length * 100).toFixed(1) : 0;
+            const highlightedCount = document.querySelectorAll('.highlighted').length / 2; // Divide by 2 because both bbox and word-item are highlighted
+
+            document.getElementById('totalWords').textContent = totalWords;
+            document.getElementById('avgConfidence').textContent = avgConfidence + '%';
+            document.getElementById('highlightedCount').textContent = highlightedCount;
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+        }
+
+        function hideError() {
+            errorMessage.style.display = 'none';
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (currentImage && wordData.length > 0) {
+                setTimeout(renderBoundingBoxes, 100);
+            }
+        });
+    </script>
+</body>
+</html>
