@@ -1,79 +1,78 @@
 
+---
 
 ````markdown
-# SparrowOCR - Word-Level OCR with Bounding Boxes using PaddleOCR
+# SparrowOCR
 
-SparrowOCR is a lightweight Python tool that uses [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) to extract **words** and their **bounding boxes** from images. It also supports saving the results to a JSON file and visualizing the bounding boxes on the image.
-
----
+SparrowOCR is a Python tool that uses PaddleOCR to extract individual words along with their bounding boxes from images. It also allows saving the output as a JSON file and visualizing the bounding boxes on the image.
 
 ## Features
 
-- Extract words with bounding box coordinates
-- Save results as JSON
-- Visualize word bounding boxes on the original image
-- Lightweight and easy to extend
-
----
+- Extract individual words with bounding boxes
+- Save results to a JSON file
+- Visualize word-level bounding boxes on the image
+- Built using PaddleOCR and OpenCV
 
 ## Installation
 
-1. **Clone the repo:**
+### Clone the repository
 
 ```bash
 git clone https://github.com/yourusername/sparrowocr.git
 cd sparrowocr
 ````
 
-2. **Install dependencies:**
-
-Make sure you have Python 3.8+ installed. Then run:
+### Install required packages
 
 ```bash
 pip install paddleocr opencv-python numpy
 ```
 
-Also install Paddle dependencies:
+### Install PaddlePaddle
+
+Make sure you install a compatible version of PaddlePaddle. You can install the CPU version using:
 
 ```bash
 pip install paddlepaddle -f https://paddlepaddle.org.cn/whl/mkl/avx/stable.html
 ```
 
----
+For GPU support, refer to the official [PaddlePaddle installation guide](https://www.paddlepaddle.org.cn/install/quick).
 
 ## Usage
 
-### 1. Prepare your image
+### Step 1: Place your image
 
-Place your image in the root directory and update the `image_path` variable in the script.
+Place the image you want to process in the same directory as the script and update the `image_path` variable in the `__main__` block.
+
+Example:
 
 ```python
 image_path = "input_image.jpg"
 ```
 
-### 2. Run the script
+### Step 2: Run the script
 
 ```bash
-python your_script_name.py
+python sparrow_ocr.py
 ```
 
-It will:
+This will:
 
-* Extract words and bounding boxes
-* Save a JSON file: `word_bboxes.json`
-* Save a visualized image: `output_image_with_bboxes.png`
+* Extract words and their bounding boxes from the image
+* Save the word data in `word_bboxes.json`
+* Save a visualized image with bounding boxes as `output_image_with_bboxes.png`
 
----
+## Output Files
 
-## Output Format
+### word\_bboxes.json
 
-### `word_bboxes.json`
+Example structure:
 
 ```json
 [
     {
         "index": 0,
-        "word": "Hello",
+        "word": "example",
         "bbox": [100.5, 50.0, 150.7, 75.2],
         "confidence": 0.98
     },
@@ -81,11 +80,9 @@ It will:
 ]
 ```
 
-### `output_image_with_bboxes.png`
+### output\_image\_with\_bboxes.png
 
-An image with green rectangles drawn around each word, along with word labels.
-
----
+An image with green rectangles drawn around each word and word labels annotated above each box.
 
 ## Project Structure
 
@@ -97,23 +94,12 @@ An image with green rectangles drawn around each word, along with word labels.
 └── output_image_with_bboxes.png
 ```
 
----
-
 ## Notes
 
-* This script uses a simple estimation to split lines into individual word boxes.
-* Works best with clearly printed text and good image quality.
-* Extendable for paragraph-level structure or multilingual support (`lang='ch'`, `lang='en'`, etc.).
-
----
-
-## Author
-
-**Your Name**
-Feel free to use, fork, or contribute!
-
----
+* Bounding boxes for words are approximated based on the full line's bounding box and word length.
+* The script currently assumes horizontal English text by default (`lang='en'`).
+* For multilingual support, modify the `lang` parameter in the `SparrowOCR` class.
 
 ## License
 
-This project is open-source and available under the [MIT License](LICENSE).
+This project is licensed under the MIT License.
